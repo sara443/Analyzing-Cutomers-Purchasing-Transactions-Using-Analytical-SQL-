@@ -1,0 +1,77 @@
+--First, create a Common Table Expression (CTE) to calculate the total sales, frequency, and recency for each customer
+WITH first_CTE AS (
+SELECT
+customer_id,
+SUM(quantity * price) AS total_sales, -- calculate the total sales for each customer
+COUNT(stockcode) AS frequency, -- calculate the number of purchases made by each customer
+TRUNC(MONTHS_BETWEEN(SYSDATE, MAX(TO_DATE(invoicedate, 'MM/DD/YYYY HH24:MI')))) AS recency -- calculate the recency (in months) of each customer's most recent purchase
+FROM
+tableRetail
+GROUP BY
+customer_id
+),
+-- Next, create a CTE to calculate the monetary score for each customer
+sec_CTE AS (
+SELECT
+customer_id,
+recency,
+frequency,
+ NTILE(5) OVER (ORDER BY total_sales ) AS monetary -- divide customers into 5 groups based on their total sales, with the highest-spending customers in group 5
+FROM
+first_CTE
+),
+-- Finally, create a CTE to calculate the RFM scores and customer segments for each customer
+third_CTE AS (
+SELECT
+customer_id,
+recency,
+frequency,
+monetary,
+NTILE(5) OVER (ORDER BY recency DESC) AS r_score, -- divide customers into 5 groups based on recency, with the most recent customers in group 5
+NTILE(5) OVER (ORDER BY (frequency + monetary) / 2) AS fm_score -- divide customers into 5 groups based on the average of their frequency and monetary scores
+
+FROM
+sec_CTE 
+)
+-- Select the customer ID, RFM scores, and customer segment for each customer, based on their RFM scores
+SELECT
+customer_id,
+recency,
+frequency,
+monetary,
+r_score,
+fm_score,
+
+CASE
+WHEN (r_score = 5 AND fm_score IN (5, 4)) OR (r_score = 4 AND fm_score = 5) THEN 'Champions' -- customers who are recent, frequent, and high-spending
+WHEN (r_score = 5 AND fm_score = 2) OR (r_score = 4 AND fm_score IN (2, 3)) OR (r_score = 3 AND fm_score = 3) THEN 'Potential Loyalists' -- customers who are recent, low-spending, and average in frequency, but show potential to become loyal
+WHEN (r_score = 5 AND fm_score = 3) OR (r_score = 4 AND fm_score = 4) OR (r_score = 3 AND fm_score IN (4, 5)) THEN 'Loyal Customers' -- customers who are recent, high-spending, and average in frequency
+WHEN (r_score = 5 AND fm_score = 1) THEN 'Recent Customers'  -- customers who are recent but haven't made many purchases yet
+WHEN (r_score = 4 AND fm_score = 1) OR (r_score = 3 AND fm_score = 1) THEN 'Promising' -- customers who have made a few purchases but are not recent, could potentially become valuable
+WHEN (r_score = 3 AND fm_score = 2) OR (r_score = 2 AND fm_score IN (1,2, 3)) THEN 'Customers Needing Attention' -- customers who are low-spending and not recent, could potentially become inactive 
+WHEN (r_score = 2 AND fm_score IN (5, 4)) OR (r_score = 1 AND fm_score = 3) THEN 'At Risk' -- customers who are either high-spending but not recent, or average in frequency and low-spending but not recent
+WHEN (r_score = 1 AND fm_score IN (5, 4)) THEN 'Cant Lose Them' -- customers who are not recent but have a high monetary value and have made frequent purchases in the past. These customers are valuable and should be targeted to prevent them from churning.
+WHEN (r_score = 1 AND fm_score = 2) THEN 'Hibernating'-- customers who have not made any recent purchases but have made purchases in the past. These customers may still have potential value and may be worth re-engaging with targeted marketing campaigns to bring them back.
+WHEN (r_score = 1 AND fm_score = 1) THEN 'Lost' --customers who have not made any purchases for a long time and are unlikely to return. 
+END AS cust_segment
+FROM
+third_CTE
+
+ORDER BY
+customer_id ;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
