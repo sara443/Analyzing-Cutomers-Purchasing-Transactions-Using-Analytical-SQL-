@@ -1,4 +1,4 @@
-Analyzing Cutomers Purchasing Transactions Using Analytical SQL (SQL.Analytical SQL Functions.CTEs.Window Functions)
+Analyzing Cutomers Purchasing Transactions Using Analytical SQL (SQL- Analytical SQL Functions - CTEs - Window Functions)
 
 
 
