@@ -1,4 +1,7 @@
 Analyzing Cutomers Purchasing Transactions Using Analytical SQL (SQL.Analytical SQL Functions.CTEs.Window Functions)
+
+
+
 In this project, we aim to analyze customer purchasing transactions to gain insights into their behavior and optimize various aspects of the business, including sales, revenue, customer retention, and churn.
 
 The problem statement revolves around utilizing analytical SQL to analyze customers' purchasing transactions and derive meaningful insights. The goal is to efficiently target customers, increase sales and revenue, improve customer retention, and reduce churn.
